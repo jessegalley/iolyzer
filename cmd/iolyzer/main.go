@@ -10,7 +10,6 @@ import (
 )
 
 func main() {
-    // define command line flags
     rootDir := pflag.StringP("root", "r", "testfs", "root directory for test filesystem")
     numDirs := pflag.IntP("dirs", "d", 100, "number of directories to create")
     numFiles := pflag.IntP("files", "f", 100, "number of files to create")
