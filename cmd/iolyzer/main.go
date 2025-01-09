@@ -42,6 +42,9 @@ func main() {
 
         // output format
         outputFormat = pflag.String("format", "table", "output format (table, json, or flat)")
+
+        // whether to reinitialize existing test files
+        reinitFile = pflag.Bool("reinit", false, "reinitialize test files even if they already exist")
     )
 
     // parse command line flags
@@ -78,28 +81,50 @@ func main() {
     // create slice to track test files
     var testFiles []string
 
-    // create test files for each worker
-    for i := 0; i < *parallelJobs; i++ {
-        // generate unique file name for this worker
-        workerFile := fmt.Sprintf("%s_%d.dat", *fileName, i)
-        
-        // ensure file path is absolute
-        absPath, err := filepath.Abs(workerFile)
-        if err != nil {
-            fmt.Fprintf(os.Stderr, "failed to get absolute path: %v\n", err)
-            os.Exit(1)
-        }
+		// create test files for each worker
+		for i := 0; i < *parallelJobs; i++ {
+			// generate unique file name for this worker
+			workerFile := fmt.Sprintf("%s_%d.dat", *fileName, i)
 
-        // create the test file
-        err = iolyzer.LayoutTestFile(absPath, int(*fileSize*1024*1024))
-        if err != nil {
-            fmt.Fprintf(os.Stderr, "failed to create test file %s: %v\n", workerFile, err)
-            os.Exit(1)
-        }
+			// ensure file path is absolute
+			absPath, err := filepath.Abs(workerFile)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "failed to get absolute path: %v\n", err)
+				os.Exit(1)
+			}
 
-        // add file to tracking slice
-        testFiles = append(testFiles, absPath)
-    }
+			// create the test file
+			err = iolyzer.LayoutTestFile(absPath, int(*fileSize*1024*1024), *reinitFile)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "failed to create test file %s: %v\n", workerFile, err)
+				os.Exit(1)
+			}
+
+			// add file to tracking slice
+			testFiles = append(testFiles, absPath)
+		}
+    // // create test files for each worker
+    // for i := 0; i < *parallelJobs; i++ {
+    //     // generate unique file name for this worker
+    //     workerFile := fmt.Sprintf("%s_%d.dat", *fileName, i)
+    //     
+    //     // ensure file path is absolute
+    //     absPath, err := filepath.Abs(workerFile)
+    //     if err != nil {
+    //         fmt.Fprintf(os.Stderr, "failed to get absolute path: %v\n", err)
+    //         os.Exit(1)
+    //     }
+    //
+    //     // create the test file
+    //     err = iolyzer.LayoutTestFile(absPath, int(*fileSize*1024*1024))
+    //     if err != nil {
+    //         fmt.Fprintf(os.Stderr, "failed to create test file %s: %v\n", workerFile, err)
+    //         os.Exit(1)
+    //     }
+    //
+    //     // add file to tracking slice
+    //     testFiles = append(testFiles, absPath)
+    // }
 
     // run the mixed read/write test
     fmt.Fprintf(os.Stderr, "starting mixed R/W test with %d workers (%d%% reads)\n", *parallelJobs, *rwmix)

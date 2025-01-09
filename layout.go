@@ -126,9 +126,9 @@ func (l *Layout) createDirectories(dirsPerLevel, numLevels int) ([]string, error
     return dirs, nil
 }
 
-// distributeFiles creates and distributes files across the provided directories.
+// distributeFiles creates and distributes files across the provided directories
 // files are evenly distributed using a deterministic pattern, with each file
-// being filled with random data of the specified size.
+// being filled with random data of the specified size
 func (l *Layout) distributeFiles(dirs []string) error {
     // verify we have directories available for file distribution
     // this prevents attempting to create files with nowhere to put them
@@ -150,7 +150,8 @@ func (l *Layout) distributeFiles(dirs []string) error {
 
         // create the file using the LayoutTestFile function
         // this creates a file of the specified size filled with random data
-        err := LayoutTestFile(filePath, int(l.FileSize))
+        // pass false for reinitialize to reuse existing files
+        err := LayoutTestFile(filePath, int(l.FileSize), false)
         if err != nil {
             return fmt.Errorf("failed to create file %s: %w", filePath, err)
         }
@@ -158,42 +159,148 @@ func (l *Layout) distributeFiles(dirs []string) error {
 
     return nil
 }
+//
+// // distributeFiles creates and distributes files across the provided directories.
+// // files are evenly distributed using a deterministic pattern, with each file
+// // being filled with random data of the specified size.
+// func (l *Layout) distributeFiles(dirs []string) error {
+//     // verify we have directories available for file distribution
+//     // this prevents attempting to create files with nowhere to put them
+//     if len(dirs) == 0 {
+//         return fmt.Errorf("no directories available for file distribution")
+//     }
+//
+//     // create the specified number of files
+//     // distribute them evenly across available directories
+//     for i := 0; i < l.NumFiles; i++ {
+//         // determine target directory using modulo operation
+//         // this ensures even distribution across all directories
+//         targetDir := dirs[i%len(dirs)]
+//
+//         // generate a deterministic file name that includes its index
+//         // this makes files easy to track and reference
+//         fileName := fmt.Sprintf("file_%d", i)
+//         filePath := filepath.Join(targetDir, fileName)
+//
+//         // create the file using the LayoutTestFile function
+//         // this creates a file of the specified size filled with random data
+//         err := LayoutTestFile(filePath, int(l.FileSize))
+//         if err != nil {
+//             return fmt.Errorf("failed to create file %s: %w", filePath, err)
+//         }
+//     }
+//
+//     return nil
+// }
+
+// // LayoutTestFile creates a file of specified size filled with random data
+// // file: path to the file to create
+// // size: size of the file in bytes
+// func LayoutTestFile(file string, size int) error {
+//     // create a buffer for random data
+//     randomData := make([]byte, size)
+//
+//     // fill buffer with random data
+//     // _, err := rand.Read(randomData)
+// 		_, err := rand.Read(randomData)
+//     if err != nil {
+//         return fmt.Errorf("failed to generate random data: %w", err)
+//     }
+//
+//     // create the test file
+//     f, err := os.OpenFile(file, os.O_CREATE|os.O_WRONLY, 0644)
+//     if err != nil {
+//         return fmt.Errorf("failed to create file: %w", err)
+//     }
+//
+//     // ensure file is closed when function returns
+//     defer f.Close()
+//
+//     // write the random data to the file
+//     _, err = f.Write(randomData)
+//     if err != nil {
+//         return fmt.Errorf("failed to write random data to file: %w", err)
+//     }
+//
+//     // sync file to ensure data is written to disk
+//     err = f.Sync()
+//     if err != nil {
+//         return fmt.Errorf("failed to sync file: %w", err)
+//     }
+//
+//     return nil
+// }
 
 // LayoutTestFile creates a file of specified size filled with random data
-// file: path to the file to create
-// size: size of the file in bytes
-func LayoutTestFile(file string, size int) error {
+// if reinitialize is true, recreate the file even if it exists
+func LayoutTestFile(file string, size int, reinitialize bool) error {
+    // check if file already exists with correct size
+    if !reinitialize && CheckExistingFile(file, size) {
+        // file exists and is valid, no need to recreate
+        return nil
+    }
+    
     // create a buffer for random data
     randomData := make([]byte, size)
-
+    
     // fill buffer with random data
-    // _, err := rand.Read(randomData)
-		_, err := rand.Read(randomData)
+    _, err := rand.Read(randomData)
     if err != nil {
         return fmt.Errorf("failed to generate random data: %w", err)
     }
-
+    
     // create the test file
     f, err := os.OpenFile(file, os.O_CREATE|os.O_WRONLY, 0644)
     if err != nil {
         return fmt.Errorf("failed to create file: %w", err)
     }
-
+    
     // ensure file is closed when function returns
     defer f.Close()
-
+    
     // write the random data to the file
     _, err = f.Write(randomData)
     if err != nil {
         return fmt.Errorf("failed to write random data to file: %w", err)
     }
-
+    
     // sync file to ensure data is written to disk
     err = f.Sync()
     if err != nil {
         return fmt.Errorf("failed to sync file: %w", err)
     }
-
+    
     return nil
+}
+
+// CheckExistingFile verifies if a file exists with the correct size and permissions
+// returns true if file exists with correct size and is writable, false otherwise
+func CheckExistingFile(file string, size int) bool {
+    // get file information
+    fileInfo, err := os.Stat(file)
+    
+    // if there's an error (including file not existing), return false
+    if err != nil {
+        return false
+    }
+    
+    // check if the size matches what we expect
+    if fileInfo.Size() != int64(size) {
+        return false
+    }
+    
+    // attempt to open the file for writing to verify permissions
+    f, err := os.OpenFile(file, os.O_WRONLY, 0)
+    
+    // if we can't open the file for writing, return false
+    if err != nil {
+        return false
+    }
+    
+    // close the file handle
+    f.Close()
+    
+    // all checks passed, file exists and is writable
+    return true
 }
 
