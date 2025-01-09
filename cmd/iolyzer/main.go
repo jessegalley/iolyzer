@@ -84,7 +84,7 @@ func main() {
         err = iolyzer.LayoutTestFile(absPath, int(*fileSize*1024*1024))
         if err != nil {
             fmt.Printf("failed to create test file %s: %v\n", workerFile, err)
-            cleanup(testFiles)
+            // cleanup(testFiles)
             os.Exit(1)
         }
 
@@ -93,32 +93,62 @@ func main() {
     }
 
     // ensure test files are cleaned up when main returns
-    defer cleanup(testFiles)
+    // defer cleanup(testFiles)
+
+    // // run the mixed read/write test
+    // fmt.Printf("starting mixed R/W test with %d workers (%d%% reads)\n", *parallelJobs, *rwmix)
+    // err := iolyzer.MixedRWTest(
+    //     testFiles,
+    //     *blockSize,
+    //     *rwmix,
+    //     *directIO,
+    //     *oSync,
+    //     *fsyncFreq,
+    //     time.Duration(*testDuration)*time.Second,
+    // )
+    // if err != nil {
+    //     fmt.Printf("test failed: %v\n", err)
+    //     os.Exit(1)
+    // }
 
     // run the mixed read/write test
     fmt.Printf("starting mixed R/W test with %d workers (%d%% reads)\n", *parallelJobs, *rwmix)
-    err := iolyzer.MixedRWTest(
-        testFiles,
-        *blockSize,
-        *rwmix,
-        *directIO,
-        *oSync,
-        *fsyncFreq,
-        time.Duration(*testDuration)*time.Second,
+
+    // get test results
+    result, err := iolyzer.MixedRWTest(
+      testFiles,
+      *blockSize,
+      *rwmix,
+      *directIO,
+      *oSync,
+      *fsyncFreq,
+      time.Duration(*testDuration)*time.Second,
     )
     if err != nil {
-        fmt.Printf("test failed: %v\n", err)
-        os.Exit(1)
+      fmt.Printf("test failed: %v\n", err)
+      os.Exit(1)
     }
-}
 
+    // calculate metrics from test result
+    readIOPS := float64(result.ReadCount) / result.Duration.Seconds()
+    writeIOPS := float64(result.WriteCount) / result.Duration.Seconds()
+    readThroughput := float64(result.BytesRead) / result.Duration.Seconds() / (1024 * 1024)
+    writeThroughput := float64(result.BytesWritten) / result.Duration.Seconds() / (1024 * 1024)
+
+    // print results in table format
+    fmt.Printf("\n%8s  %12s  %12s\n", "", "IOPS", "BW (MB/s)")
+    fmt.Printf("%8s  %12.2f  %12.2f\n", "read", readIOPS, readThroughput)
+    fmt.Printf("%8s  %12.2f  %12.2f\n", "write", writeIOPS, writeThroughput)
+  }
+
+// actually would rather keep files for repeated tests I think
 // cleanup removes all test files
-func cleanup(files []string) {
-    // iterate through files
-    for _, file := range files {
-        // attempt to remove each file
-        if err := os.Remove(file); err != nil {
-            fmt.Printf("warning: failed to remove test file %s: %v\n", file, err)
-        }
-    }
-}
+// func cleanup(files []string) {
+//     // iterate through files
+//     for _, file := range files {
+//         // attempt to remove each file
+//         if err := os.Remove(file); err != nil {
+//             fmt.Printf("warning: failed to remove test file %s: %v\n", file, err)
+//         }
+//     }
+// }
