@@ -59,104 +59,6 @@ type WorkerConfig struct {
     Results chan<- TestResult
 }
 
-// // MixedRWTest performs parallel mixed read/write testing
-// func MixedRWTest(files []string, block int, rwmix int, direct bool, osync bool, fsyncFreq int, duration time.Duration) error {
-//     // constant for alignment requirement in direct io
-//     const alignment = 4096
-//
-//     // validate block size for direct io
-//     if direct && block%alignment != 0 {
-//         return fmt.Errorf("block size must be a multiple of %d bytes for direct io", alignment)
-//     }
-//
-//     // create buffered channel for results
-//     results := make(chan TestResult, len(files))
-//
-//     // create wait group for synchronization
-//     var wg sync.WaitGroup
-//
-//     // set GOMAXPROCS to number of workers for better CPU utilization
-//     runtime.GOMAXPROCS(len(files))
-//
-//     // launch worker goroutines
-//     for i, file := range files {
-//         // increment wait group counter
-//         wg.Add(1)
-//
-//         // create worker config
-//         cfg := WorkerConfig{
-//             FilePath:       file,
-//             BlockSize:      block,
-//             ReadPercentage: rwmix,
-//             DirectIO:       direct,
-//             OSync:         osync,
-//             FsyncFrequency: fsyncFreq,
-//             Duration:       duration,
-//             Results:       results,
-//         }
-//
-//         // create worker-specific RNG with unique seed
-//         rng := mathrand.New(mathrand.NewSource(time.Now().UnixNano() + int64(i)))
-//
-//         // launch worker goroutine
-//         go func(config WorkerConfig, workerRng *mathrand.Rand) {
-//             // ensure wait group is decremented when worker completes
-//             defer wg.Done()
-//
-//             // lock this goroutine to its thread for better performance
-//             runtime.LockOSThread()
-//             
-//             // run the worker
-//             if err := worker(config, workerRng); err != nil {
-//                 fmt.Printf("worker error on file %s: %v\n", config.FilePath, err)
-//             }
-//         }(cfg, rng)
-//     }
-//
-//     // wait for all workers to complete
-//     wg.Wait()
-//
-//     // close results channel
-//     close(results)
-//
-//     // aggregate results
-//     var totalReads, totalWrites int64
-//     var totalBytesRead, totalBytesWritten int64
-//     var maxDuration time.Duration
-//
-//     // collect results from channel
-//     for result := range results {
-//         // accumulate counters
-//         totalReads += result.ReadCount
-//         totalWrites += result.WriteCount
-//         totalBytesRead += result.BytesRead
-//         totalBytesWritten += result.BytesWritten
-//         
-//         // track longest duration
-//         if result.Duration > maxDuration {
-//             maxDuration = result.Duration
-//         }
-//     }
-//
-//     // calculate aggregate metrics
-//     readIOPS := float64(totalReads) / maxDuration.Seconds()
-//     writeIOPS := float64(totalWrites) / maxDuration.Seconds()
-//     readThroughput := float64(totalBytesRead) / maxDuration.Seconds() / (1024 * 1024)
-//     writeThroughput := float64(totalBytesWritten) / maxDuration.Seconds() / (1024 * 1024)
-//
-//     // print results
-//     // fmt.Printf("read IOPS: %.2f\n", readIOPS)
-//     // fmt.Printf("write IOPS: %.2f\n", writeIOPS)
-//     // fmt.Printf("wead throughput: %.2f MB/s\n", readThroughput)
-//     // fmt.Printf("write throughput: %.2f MB/s\n", writeThroughput)
-// 		// // fmt.Printf("Test duration: %.2f seconds\n", maxDuration.Seconds())
-// 		// print results in table format
-// 		fmt.Printf("\n%8s  %12s  %12s\n", "", "IOPS", "BW (MB/s)")
-// 		fmt.Printf("%8s  %12.2f  %12.2f\n", "read", readIOPS, readThroughput)
-// 		fmt.Printf("%8s  %12.2f  %12.2f\n", "write", writeIOPS, writeThroughput)
-//
-//     return nil
-// }
 // MixedRWTest performs parallel mixed read/write testing and returns aggregated results
 func MixedRWTest(files []string, block int, rwmix int, direct bool, osync bool, fsyncFreq int, duration time.Duration) (TestResult, error) {
     // constant for alignment requirement in direct io
@@ -187,10 +89,10 @@ func MixedRWTest(files []string, block int, rwmix int, direct bool, osync bool, 
             BlockSize:      block,
             ReadPercentage: rwmix,
             DirectIO:       direct,
-            OSync:         osync,
+            OSync:          osync,
             FsyncFrequency: fsyncFreq,
             Duration:       duration,
-            Results:       results,
+            Results:        results,
         }
 
         // create worker-specific RNG with unique seed
