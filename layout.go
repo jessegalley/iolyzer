@@ -3,6 +3,7 @@ package iolyzer
 import (
     "fmt"
     "math"
+		"crypto/rand"
     "os"
     "path/filepath"
 )
@@ -157,3 +158,42 @@ func (l *Layout) distributeFiles(dirs []string) error {
 
     return nil
 }
+
+// LayoutTestFile creates a file of specified size filled with random data
+// file: path to the file to create
+// size: size of the file in bytes
+func LayoutTestFile(file string, size int) error {
+    // create a buffer for random data
+    randomData := make([]byte, size)
+
+    // fill buffer with random data
+    // _, err := rand.Read(randomData)
+		_, err := rand.Read(randomData)
+    if err != nil {
+        return fmt.Errorf("failed to generate random data: %w", err)
+    }
+
+    // create the test file
+    f, err := os.OpenFile(file, os.O_CREATE|os.O_WRONLY, 0644)
+    if err != nil {
+        return fmt.Errorf("failed to create file: %w", err)
+    }
+
+    // ensure file is closed when function returns
+    defer f.Close()
+
+    // write the random data to the file
+    _, err = f.Write(randomData)
+    if err != nil {
+        return fmt.Errorf("failed to write random data to file: %w", err)
+    }
+
+    // sync file to ensure data is written to disk
+    err = f.Sync()
+    if err != nil {
+        return fmt.Errorf("failed to sync file: %w", err)
+    }
+
+    return nil
+}
+

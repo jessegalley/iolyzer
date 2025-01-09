@@ -1,0 +1,15 @@
+
+refactor output formatting into main
+  create output formatter
+  create live output with ansi escapes
+
+decouple testfile generation from workers and pre-generate
+
+check if testfiles already exist, if so, use them
+
+implement pure read 
+implement pure write 
+
+implement mixed metadata ops
+
+

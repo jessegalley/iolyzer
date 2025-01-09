@@ -3,6 +3,7 @@ package main
 import (
     "fmt"
     "os"
+    "path/filepath"
     "time"
 
     "github.com/jessegalley/iolyzer"
@@ -10,109 +11,114 @@ import (
 )
 
 func main() {
-    rootDir := pflag.StringP("root", "r", "testfs", "root directory for test filesystem")
-    numDirs := pflag.IntP("dirs", "d", 100, "number of directories to create")
-    numFiles := pflag.IntP("files", "f", 100, "number of files to create")
-    fileSize := pflag.Int64P("size", "s", 4096, "size of each file in bytes")
-    duration := pflag.DurationP("time", "t", 10*time.Second, "duration to run the tests")
-    
+    // define command line flags
+    var (
+        // size of test files in megabytes
+        fileSize = pflag.Int64("size", 1024, "size of each test file in megabytes")
+        
+        // base name for test files
+        fileName = pflag.String("file", "iolyzer_test", "base name for test files")
+        
+        // block size for io operations in kilobytes
+        blockSize = pflag.Int("block", 4096, "block size for io operations in bytes")
+        
+        // duration of test in seconds
+        testDuration = pflag.Int("runtime", 10, "duration of test in seconds")
+        
+        // number of parallel jobs
+        parallelJobs = pflag.IntP("parallel-jobs", "P", 1, "number of parallel jobs")
+        
+        // read/write mix percentage
+        rwmix = pflag.Int("rwmix", 50, "percentage of operations that should be reads (0-100)")
+        
+        // whether to use direct io
+        directIO = pflag.Bool("direct", false, "use direct io (o_direct)")
+        
+        // whether to use O_SYNC
+        oSync = pflag.Bool("osync", false, "use O_SYNC for writes")
+        
+        // fsync frequency
+        fsyncFreq = pflag.Int("fsync", 0, "call fsync after this many writes (0 disables)")
+    )
+
     // parse command line flags
     pflag.Parse()
 
-    // create new layout configuration
-    layout := iolyzer.NewLayout(*rootDir, *numDirs, *numFiles, *fileSize)
-
-    // create the test filesystem
-    fmt.Printf("Creating test filesystem with %d directories and %d files...\n", *numDirs, *numFiles)
-    err := layout.Create()
-    if err != nil {
-        fmt.Printf("Failed to create test filesystem: %v\n", err)
+    // validate parameters
+    if *rwmix < 0 || *rwmix > 100 {
+        fmt.Printf("rwmix must be between 0 and 100, got %d\n", *rwmix)
         os.Exit(1)
     }
 
-    // run stat test
-    fmt.Println("Starting stat test...")
-    err = iolyzer.StatTest(*rootDir, *duration)
-    if err != nil {
-        fmt.Printf("Stat test failed: %v\n", err)
-        return
+    if *parallelJobs < 1 {
+        fmt.Printf("parallel-jobs must be at least 1, got %d\n", *parallelJobs)
+        os.Exit(1)
     }
 
-    // perform direct reads on some files
-    fmt.Println("\nStarting direct read test...")
-    // note: we're using the first file in the first directory for this test
-    testFile := fmt.Sprintf("%s/dir_l1_0/file_0", *rootDir)
-    err = iolyzer.Read(testFile, 4096, *duration, true)
-    if err != nil {
-        fmt.Printf("Direct read test failed: %v\n", err)
-        return
+    if *blockSize <= 0 {
+        fmt.Printf("block size must be positive, got %d\n", *blockSize)
+        os.Exit(1)
     }
 
-    // cleanup unless user specifies otherwise
-    // note: you might want to add a flag to control this
-    fmt.Println("\nCleaning up test filesystem...")
-    err = os.RemoveAll(*rootDir)
+    if *fileSize <= 0 {
+        fmt.Printf("file size must be positive, got %d\n", *fileSize)
+        os.Exit(1)
+    }
+
+    // create slice to track test files
+    var testFiles []string
+
+    // create test files for each worker
+    for i := 0; i < *parallelJobs; i++ {
+        // generate unique file name for this worker
+        workerFile := fmt.Sprintf("%s_%d.dat", *fileName, i)
+        
+        // ensure file path is absolute
+        absPath, err := filepath.Abs(workerFile)
+        if err != nil {
+            fmt.Printf("failed to get absolute path: %v\n", err)
+            os.Exit(1)
+        }
+
+        // create the test file
+        err = iolyzer.LayoutTestFile(absPath, int(*fileSize*1024*1024))
+        if err != nil {
+            fmt.Printf("failed to create test file %s: %v\n", workerFile, err)
+            cleanup(testFiles)
+            os.Exit(1)
+        }
+
+        // add file to tracking slice
+        testFiles = append(testFiles, absPath)
+    }
+
+    // ensure test files are cleaned up when main returns
+    defer cleanup(testFiles)
+
+    // run the mixed read/write test
+    fmt.Printf("starting mixed R/W test with %d workers (%d%% reads)\n", *parallelJobs, *rwmix)
+    err := iolyzer.MixedRWTest(
+        testFiles,
+        *blockSize,
+        *rwmix,
+        *directIO,
+        *oSync,
+        *fsyncFreq,
+        time.Duration(*testDuration)*time.Second,
+    )
     if err != nil {
-        fmt.Printf("Failed to clean up test filesystem: %v\n", err)
+        fmt.Printf("test failed: %v\n", err)
+        os.Exit(1)
     }
 }
-// package main
-//
-// import (
-// 	"fmt"
-// 	"os"
-// 	"time"
-//
-// 	"github.com/jessegalley/iolyzer"
-// )
-//
-// func main() {
-//     // example parameters
-//     file := "test.data"
-//     size := 1024 * 1024     // 1MB
-//     block := 4096           // 4KB blocks
-//     duration := time.Second * 10
-//
-//     // create the test file
-//     err := iolyzer.LayoutTestFile(file, size)
-//     if err != nil {
-//         fmt.Printf("Failed to create test file: %v\n", err)
-//         return
-//     }
-//
-//     // run stat test
-//     fmt.Println("Starting stat test...")
-//     err = iolyzer.StatTest(file, duration)
-//     if err != nil {
-//         fmt.Printf("Stat test failed: %v\n", err)
-//         return
-//     }
-//
-//     // perform direct reads
-//     fmt.Println("\nStarting direct read test...")
-//     err = iolyzer.Read(file, block, duration, true)
-//     if err != nil {
-//         fmt.Printf("direct read test failed: %v\n", err)
-//         return
-//     }
-//
-//     // fmt.Println("Starting direct read test...")
-//     // err = iolyzer.ReadDirect(file, block, duration)
-//     // if err != nil {
-//     //     fmt.Printf("Direct read test failed: %v\n", err)
-//     //     return
-//     // }
-//
-//     // perform normal reads
-//     // fmt.Println("\nStarting normal read test...")
-//     // err = iolyzer.Read(file, block, duration, false)
-//     // if err != nil {
-//     //     fmt.Printf("Normal read test failed: %v\n", err)
-//     //     return
-//     // }
-//
-//    
-//     // cleanup
-//     os.Remove(file)
-// }
-//
+
+// cleanup removes all test files
+func cleanup(files []string) {
+    // iterate through files
+    for _, file := range files {
+        // attempt to remove each file
+        if err := os.Remove(file); err != nil {
+            fmt.Printf("warning: failed to remove test file %s: %v\n", file, err)
+        }
+    }
+}
