@@ -1,7 +1,7 @@
 export CGO_ENABLED=0
 
 build:
-	go build -o bin/iolyzer cmd/iolyzer/main.go
+	go build -o bin/iolyzer . 
 
 run: build
 	./bin/iolyzer
