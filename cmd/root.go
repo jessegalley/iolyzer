@@ -6,12 +6,14 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 )
 
 // program flags defined as global variables for access across functions
 var (
+    testDir string   // directory in which to make test files 
     fileSize int64   // size of test files in megabytes
     fileName string  // base name for test files
     blockSize int    // block size for io operations in kilobytes
@@ -23,7 +25,8 @@ var (
     outFmt string    // output format
     reinitFile bool  // whether to reinitialize existing test files
     version bool     // print version and exit
-    metamix int      // metadata test
+    // metamix int      // metadata test
+
 )
 
 // program info const 
@@ -41,10 +44,17 @@ var rootCmd = &cobra.Command{
       fmt.Printf("iolyzer v%s\njesse@jessegalley.net\ngithub.com/jessegalley/iolyzer\n", progVersion)
       os.Exit(1)
     }
+
+    // validate all cli flags
+    err := validateParameters()
+    if err != nil {
+      fmt.Fprintf(os.Stderr, "error parsing flags: %v\n", err)
+      os.Exit(2)
+    }
+
+    // set the default test dir 
+    testDir = "./iolyzer_test/"
   },
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	// Run: func(cmd *cobra.Command, args []string) { },
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -57,17 +67,7 @@ func Execute() {
 }
 
 func init() {
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
-
-	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.iolyzer.yaml)")
-
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-  // rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-  // define command line flags, writing values to our global variables
-  rootCmd.PersistentFlags().Int64VarP(&fileSize, "size", "s", 100, "size of each test file in megabytes")
+  rootCmd.PersistentFlags().Int64VarP(&fileSize, "size", "s", 100, "size of each test file in MiB")
   rootCmd.PersistentFlags().StringVar(&fileName, "file", "iolyzer_test", "base name for test files")
   rootCmd.PersistentFlags().IntVarP(&blockSize, "block", "b", 4096, "block size for io operations in bytes")
   rootCmd.PersistentFlags().IntVarP(&testDuration, "runtime", "t",  10, "duration of test in seconds")
@@ -78,9 +78,67 @@ func init() {
   rootCmd.PersistentFlags().StringVar(&outFmt, "format", "table", "output format (table, json, or flat)")
   rootCmd.PersistentFlags().BoolVar(&reinitFile, "reinit", false, "reinitialize test files even if they already exist")
   rootCmd.PersistentFlags().BoolVarP(&version, "version", "V", false, "print version and exit")
-  rootCmd.PersistentFlags().IntVarP(&metamix, "metamix", "m", 0, "how much metadata ops to mix in (0 is no md ops)")
-
+  // rootCmd.PersistentFlags().IntVarP(&metamix, "metamix", "m", 0, "how much metadata ops to mix in (0 is no md ops)")
 
 }
 
+// validateParameters checks all command line parameters for validity
+func validateParameters() error {
+    // validate read/write mix percentage
+    if rwmix < 0 || rwmix > 100 {
+        return fmt.Errorf("rwmix must be between 0 and 100, got %d", rwmix)
+    }
 
+    // validate metadata mix percentage
+    // if metamix < 0 || metamix > 99 {
+    //     return fmt.Errorf("metamix must be between 0 and 99, got %d", metamix)
+    // }
+
+    // validate number of parallel jobs
+    if parallelJobs < 1 {
+        return fmt.Errorf("parallel-jobs must be at least 1, got %d", parallelJobs)
+    }
+
+    // validate block size
+    if blockSize <= 0 {
+        return fmt.Errorf("block size must be positive, got %d", blockSize)
+    }
+
+    // validate file size
+    if fileSize <= 0 {
+        return fmt.Errorf("file size must be positive, got %d", fileSize)
+    }
+
+    return nil
+}
+
+func ensureWritableDirectory(dirPath string) error {
+    // first check if directory exists
+    if info, err := os.Stat(dirPath); err == nil {
+        // directory exists, check if it's a directory and writable
+        if !info.IsDir() {
+            return fmt.Errorf("%s exists but is not a directory", dirPath)
+        }
+        
+        // try to create a temporary file to test writeability
+        testFile := filepath.Join(dirPath, ".write_test")
+        if f, err := os.Create(testFile); err != nil {
+            return fmt.Errorf("directory %s exists but is not writable: %v", dirPath, err)
+        } else {
+            f.Close()
+            os.Remove(testFile)
+        }
+        
+        return nil
+    } else if !os.IsNotExist(err) {
+        // error other than "not exists" occurred
+        return fmt.Errorf("failed to check directory %s: %v", dirPath, err)
+    }
+    
+    // directory doesn't exist, try to create it
+    if err := os.MkdirAll(dirPath, 0755); err != nil {
+        return fmt.Errorf("failed to create directory %s: %v", dirPath, err)
+    }
+    
+    return nil
+}
