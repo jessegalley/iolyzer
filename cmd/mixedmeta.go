@@ -12,9 +12,10 @@ import (
 
 // mixedmetaCmd represents the mixedmeta command
 var mixedmetaCmd = &cobra.Command{
-	Use:   "mixedmeta",
+	Use:   "mixedmeta [test_path]",
 	Short: "Perform a mix of metadata and data i/o.",
 	Long: `Lay out a large test directory structure and iterate over it performing metadata operations as well as reads and writes..`,
+  Args: cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("mixedmeta called")
 	},

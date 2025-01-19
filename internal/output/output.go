@@ -31,6 +31,9 @@ func FormatResult(result runners.TestResult, format OutputFormat) (string, error
     readThroughput := float64(result.BytesRead) / result.Duration.Seconds() / (1024 * 1024)
     writeThroughput := float64(result.BytesWritten) / result.Duration.Seconds() / (1024 * 1024)
 
+    fmt.Printf("DEBUG: readCount %d\n",result.ReadCount)
+    fmt.Printf("DEBUG: duration %v\n", result.Duration.Seconds())
+
     // handle each output format
     switch format {
     case TableFormat:
