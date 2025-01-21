@@ -11,9 +11,19 @@ import (
 	"unsafe"
 )
 
+const (
+  OP_READ = 1 << iota
+  OP_WRITE
+  OP_OPEN
+  OP_STAT
+  OP_TOUCH
+  OP_DENTRY
+  OP_NOOP
+)
+
 // OP represents an io operation to be performed
 type OP struct {
-	OpType   string // type of operation to perform (read/write)
+	OpType   int// type of operation to perform (read/write)
 	OpRepeat int    // number of times to repeat this operation
 }
 
@@ -153,10 +163,12 @@ func (w *IOWorker) processOps() {
 
 	// track write count for fsync
 	writeCount := uint64(0)
+	blocked := uint64(0)
 
 	for {
 		select {
 		case <-w.done:
+      fmt.Printf("DEBUG: worker %d blocked %d times\n", w.Number, blocked)
 			// worker shutdown requested
       // cleanup resources
       if w.file != nil {
@@ -168,7 +180,7 @@ func (w *IOWorker) processOps() {
 		case op := <-w.OpQueue:
       // process the operation
       switch op.OpType {
-      case "read":
+      case OP_READ:
         // perform read operation
         for i := 0; i < op.OpRepeat; i++ {
           n, err := io.ReadFull(w.file, w.readBuf)
@@ -182,7 +194,7 @@ func (w *IOWorker) processOps() {
         counters["bytes_read"] += uint64(n)
         }   
         
-      case "write":
+      case OP_WRITE:
         // perform write operation
         fmt.Printf("DEBUG: worker: %d write\n", w.Number)
         n, err := w.file.Write(w.writeBuf)
@@ -205,6 +217,7 @@ func (w *IOWorker) processOps() {
       }
     default:
       fmt.Printf("DEBUG: worker: %d found empty op queue\n", w.Number)
+			blocked++
       // don't want to spam stdout, so sleep briefly
       time.Sleep(time.Millisecond)   
 
@@ -228,88 +241,3 @@ func (w *IOWorker) processOps() {
 		}
 	}
 }
-
-// package ioworker
-//
-// import "os"
-//
-// type OP struct {
-// 	OpType   string // operation type (read/write)
-// 	OpRepeat int    // number of times to repeat operation
-// }
-//
-// type IOWorker struct {
-// 	Number     int           // worker identifier
-// 	BlockSize  int           // size of io operations
-// 	DirectIO   bool          // use O_DIRECT
-// 	OSync      bool          // use O_SYNC
-// 	FsyncFreq  int           // fsync frequency
-// 	OpQueue    chan<- OP     // operation queue
-// 	Results    chan<- uint64 // raw counter updates
-// 	ErrorsCh   chan<- error  // error reporting
-// 	done       chan struct{} // internal shutdown signal
-// 	workingDir string        // directory to operate in
-// 	file       *os.File     // current open file
-// }
-//
-// // worker should be given a starting dentry when
-// // instantiated.  then it will dynamically decide
-// // which file to open and start operating on based
-// // on what is in the dentry
-// func NewIOWorker(num int, wd string) *IOWorker {
-// 	return &IOWorker{
-// 		Number:     num,
-// 		workingDir: wd,
-// 	}
-// }
-//
-// func (i *IOWorker) Start() {
-// 	// starts the main worker goroutine
-// 	// look up entries in current WorkingDir
-// 	// decide which file to open based on Number
-// 	// Open file, start processing OPs
-// }
-//
-// func (i *IOWorker) Stop() {
-// 	// sends the signal to stop the IOWorker
-// 	// which tells the spawned worker goroutine to
-// 	// stop, sync, close any open files, and close
-// 	// results channel(s)
-// }
-//
-// func (i *IOWorker) openFile(path string) {
-// 	i.WorkingFile = path
-// 	// open a file to begin doing OPs on it
-// }
-//
-// func (i *IOWorker) closeFile() {
-// 	// close the currently opened file
-// }
-//
-// func (i *IOWorker) listCwd() []string {
-// 	// get a listing of the current working dir
-// 	// this listing wil be used to decide on what
-// 	// to open next, based on what OP we're looking
-// 	// to process
-// 	var listing []string
-// 	return listing
-// }
-//
-// func (i *IOWorker) create() string {
-// 	// attempts to create a file in the current working
-// 	// directory and returns it's path
-// 	var newPath string
-// 	return newPath
-// }
-//
-// func (i *IOWorker) touch(path string) error {
-// 	// attempts to touch a given file or dir
-// 	path = ""
-// 	return nil
-// }
-//
-// func (i *IOWorker) stat(path string) error {
-// 	// attempts to stat a given file or dir
-// 	path = ""
-// 	return nil
-// }

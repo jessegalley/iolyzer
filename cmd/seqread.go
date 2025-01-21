@@ -103,8 +103,8 @@ func runSeqRead(testDir string) error {
         return
       default:
         opChan <- ioworker.OP{
-          OpType:   "read",
-          OpRepeat: 8,
+          OpType:   ioworker.OP_READ,
+          OpRepeat: 128,
         }
       }
     }
