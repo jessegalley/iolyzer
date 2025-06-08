@@ -1,7 +1,8 @@
-// disbale this for now, after starting this refactor 
-// i decided that I didn't like this architecture 
+// disbale this for now, after starting this refactor
+// i decided that I didn't like this architecture
 // package ioworker provides io operation worker functionality
 package ioworker
+
 //
 // import (
 // 	"crypto/rand"
@@ -121,7 +122,7 @@ package ioworker
 // 	// signal worker to stop
 //
 //   fmt.Printf("DEBUG: worker: %d recieved Stop()\n", w.Number)
-//   
+//
 // 	close(w.done)
 //
 // }
@@ -195,8 +196,8 @@ package ioworker
 //         // update counters
 //         counters["reads"]++
 //         counters["bytes_read"] += uint64(n)
-//         }   
-//         
+//         }
+//
 //       case OP_WRITE:
 //         // perform write operation
 //         fmt.Printf("DEBUG: worker: %d write\n", w.Number)
@@ -222,7 +223,7 @@ package ioworker
 //       fmt.Printf("DEBUG: worker: %d found empty op queue\n", w.Number)
 // 			blocked++
 //       // don't want to spam stdout, so sleep briefly
-//       time.Sleep(time.Millisecond)   
+//       time.Sleep(time.Millisecond)
 //
 // 		case <-ticker.C:
 // 			// send counter updates

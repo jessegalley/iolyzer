@@ -2,9 +2,9 @@
 Copyright © 2025 jesse galley <jesse@jessegalley.net>
 
 NYI, want to refactor anyway.
-
 */
 package cmd
+
 //
 // import (
 // 	"fmt"

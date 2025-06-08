@@ -2,11 +2,11 @@
 Copyright © 2025 jesse galley <jesse@jessegalley.net>
 
 Disabling this subcommand for now because it was based on the
-workers/ioworker refactor that I decided to abandon in favour 
+workers/ioworker refactor that I decided to abandon in favour
 of a simpler architecture.
-
 */
 package cmd
+
 //
 // import (
 // 	"fmt"
@@ -29,21 +29,21 @@ package cmd
 // 	Long: `Lays out test files for each parallel worker and performs a pure, sequential read test.`,
 // 	Args: cobra.MaximumNArgs(1),
 // 	Run: func(cmd *cobra.Command, args []string) {
-// 		// if positional arg was given, override the 
-// 		// default test dir set in root 
+// 		// if positional arg was given, override the
+// 		// default test dir set in root
 // 		if len(args) == 1 {
 // 			testDir = args[0]
-// 		} 
+// 		}
 //
-// 		// validate that the testdir (default or arg) exists 
-// 		// and is writable by the calling user. create it 
+// 		// validate that the testdir (default or arg) exists
+// 		// and is writable by the calling user. create it
 // 		// if possible
 // 		if err := ensureWritableDirectory(testDir); err != nil {
 // 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 // 			os.Exit(1)
 // 		}
 //
-// 		// execute this test 
+// 		// execute this test
 // 		if err := runSeqRead(testDir); err != nil {
 // 			fmt.Fprintf(os.Stderr, "test failed: %v\n", err)
 // 			os.Exit(1)

@@ -1,6 +1,5 @@
 /*
 Copyright © 2025 jesse galley <jesse@jessegalley.net>
-
 */
 package main
 
