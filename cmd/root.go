@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -14,10 +15,11 @@ import (
 // program flags defined as global variables for access across functions
 var (
 	testDir      string // directory in which to make test files
-	fileSize     int64  // size of test files in megabytes
+	fileSize     int64  // size of test files in bytes  
 	fileName     string // base name for test files
-	blockSize    int    // block size for io operations in kilobytes
-	testDuration int    // duration of test in seconds
+	blockSize    int    // block size for io operations in bytes 
+	// testDuration int    // duration of test in seconds
+	testDuration time.Duration // duration of test 
 	parallelJobs int    // number of parallel jobs
 	directIO     bool   // whether to use direct io
 	oSync        bool   // whether to use O_SYNC
@@ -25,8 +27,6 @@ var (
 	outFmt       string // output format
 	reinitFile   bool   // whether to reinitialize existing test files
 	version      bool   // print version and exit
-	// metamix int      // metadata test
-
 )
 
 // program info const
@@ -67,10 +67,13 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().Int64VarP(&fileSize, "size", "s", 100, "size of each test file in MiB")
+  //TODO: convert block size and file size args to SI/IEC notation 
+  //      then refactor where the size args are parsed (root vs cmd)
+
 	rootCmd.PersistentFlags().StringVar(&fileName, "file", "iolyzer_test", "base name for test files")
 	rootCmd.PersistentFlags().IntVarP(&blockSize, "block", "b", 4096, "block size for io operations in bytes")
-	rootCmd.PersistentFlags().IntVarP(&testDuration, "runtime", "t", 10, "duration of test in seconds")
+	// rootCmd.PersistentFlags().IntVarP(&testDuration, "runtime", "t", 10, "duration of test in seconds")
+  rootCmd.PersistentFlags().DurationVarP(&testDuration, "runtime", "t", time.Second*30, "duration of test (e.g. 30s, 5m, 500ms) ")
 	rootCmd.PersistentFlags().IntVarP(&parallelJobs, "parallel-jobs", "P", 1, "number of parallel jobs")
 	rootCmd.PersistentFlags().BoolVarP(&directIO, "direct", "d", false, "use direct io (o_direct)")
 	rootCmd.PersistentFlags().BoolVar(&oSync, "osync", false, "use O_SYNC for writes")
@@ -78,8 +81,6 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&outFmt, "format", "table", "output format (table, json, or flat)")
 	rootCmd.PersistentFlags().BoolVar(&reinitFile, "reinit", false, "reinitialize test files even if they already exist")
 	rootCmd.PersistentFlags().BoolVarP(&version, "version", "V", false, "print version and exit")
-	// rootCmd.PersistentFlags().IntVarP(&metamix, "metamix", "m", 0, "how much metadata ops to mix in (0 is no md ops)")
-
 }
 
 // validateParameters checks all command line parameters for validity

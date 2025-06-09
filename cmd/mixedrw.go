@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"time"
+	// "time"
 
 	"github.com/jessegalley/iolyzer/internal/layout"
 	"github.com/jessegalley/iolyzer/internal/output"
@@ -47,6 +47,7 @@ If test_path is not provided, iolyzer will try to make and use ./iolyzer_test`,
 
 func init() {
 	rootCmd.AddCommand(mixedrwCmd)
+	mixedrwCmd.PersistentFlags().Int64VarP(&fileSize, "size", "s", 100, "size of each test file in MiB")
 	mixedrwCmd.Flags().IntVar(&rwmix, "rwmix", 75, "percentage of operations that should be reads (0-100)")
 }
 
@@ -95,7 +96,8 @@ func runMixedRW(testDir string) {
 		directIO,
 		oSync,
 		fsyncFreq,
-		time.Duration(testDuration)*time.Second,
+		// time.Duration(testDuration)*time.Second,
+		testDuration,
 	)
 
 	if err != nil {

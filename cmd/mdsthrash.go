@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/jessegalley/iolyzer/internal/runners"
 	"github.com/spf13/cobra"
 )
 
@@ -47,17 +48,21 @@ var mdsthrashCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(mdsthrashCmd)
 
-	// behaviour of this test
-	//  ensure dirs are created _testdir_/{in,out}/{1..N} where N is num_dirs
-	// how many dirs (num_dirs) for the test (1-64)
-
-	// how many files are written to one dir before the thread moves on to the next
-	// how many bytes are written to each file before moving on to the next file
-	// how many files are written before batch moving them to out/
-	// how many bytes are read from each file in the out dir before unlinking it
-
+	mdsthrashCmd.PersistentFlags().Int64VarP(&fileSize, "size", "s", 4, "size of each test file in KiB")
+  // args should be created here from the mdsthrash runner code TestConfig struct (if the same args don't already exist in root scope)
 }
 
 func runMDSThrash(testDir string) {
 
+	//  ensure dirs are created _testdir_/{in,out}/{1..N} where N is num_dirs
+  //  not sure if existing layout code can be used for this  
+
+  c := runners.TestConfig{TestDir: testDir} // configs should be populated based on args 
+  result, err := runners.MDSThrashTest(c)
+  if err != nil {
+    // do something 
+  }
+
+  // display result 
+  fmt.Println(result)
 }
