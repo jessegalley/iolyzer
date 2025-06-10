@@ -33,6 +33,13 @@ If test_path is not provided, iolyzer will try to make and use ./iolyzer_test`,
 			testDir = args[0]
 		}
 
+		// validate all cli flags for this command
+		err := validateMixedRWParameters()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error parsing flags: %v\n", err)
+			os.Exit(2)
+		}
+
 		// validate that the testdir (default or arg) exists
 		// and is writable by the calling user. create it
 		// if possible
@@ -51,16 +58,26 @@ func init() {
 	mixedrwCmd.Flags().IntVar(&rwmix, "rwmix", 75, "percentage of operations that should be reads (0-100)")
 }
 
-func runMixedRW(testDir string) {
-	// create slice to track test files
-	var testFiles []string
+func validateMixedRWParameters() error {
 
-	// validate output format
-	format, err := output.ValidateFormat(outFmt)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+	//TODO: propagate config refactor down into this test code
+
+	// validate file size
+	if fileSize <= 0 {
+		return fmt.Errorf("--size must be a positive integer, got %v", fileSize)
 	}
+	config.FileSize = fileSize
+
+	if rwmix < 0 || rwmix > 100 {
+		return fmt.Errorf("--rwmix must be between 1 and 100, got %d", rwmix)
+	}
+	config.ReadWriteMix = rwmix
+
+	return nil
+}
+
+func runMixedRW(testDir string) {
+	var testFiles []string
 
 	// create test files for each worker
 	for i := 0; i < parallelJobs; i++ {
@@ -96,7 +113,6 @@ func runMixedRW(testDir string) {
 		directIO,
 		oSync,
 		fsyncFreq,
-		// time.Duration(testDuration)*time.Second,
 		testDuration,
 	)
 
@@ -105,6 +121,15 @@ func runMixedRW(testDir string) {
 	}
 
 	// format and output the results
+	format, err := output.ValidateFormat(outFmt)
+	if err != nil {
+		//TODO: this is also checked in the root before
+		//      continuing so really we should never get here
+		//      maybe there is a better way to handle this
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
 	output, err := output.FormatResult(result, format)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed for format results %v", err)

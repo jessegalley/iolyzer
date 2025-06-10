@@ -6,10 +6,8 @@ package cmd
 import (
 	"fmt"
 	"os"
-	// "time"
 
-	"github.com/jessegalley/iolyzer/internal/output"
-	"github.com/jessegalley/iolyzer/internal/runners"
+	"github.com/jessegalley/iolyzer/internal/iotest"
 	"github.com/spf13/cobra"
 )
 
@@ -50,13 +48,21 @@ give any meaningful results.
 		// if possible
 		if err := ensureWritableDirectory(testDir); err != nil {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
-			os.Exit(1)
+			os.Exit(2)
+		}
+		config.TestDir = testDir
+
+		// validate all cli flags
+		err := validateMDSThrashParameters()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error parsing opts: %v\n", err)
+			os.Exit(3)
 		}
 
 		// execute this test
-		if err := runMDSThrash(testDir); err != nil {
-			fmt.Fprintf(os.Stderr, "test failed: %v\n", err)
-			os.Exit(1)
+		if err := runMDSThrash(); err != nil {
+			fmt.Fprintf(os.Stderr, "failed: %v\n", err)
+			os.Exit(4)
 		}
 	},
 }
@@ -75,12 +81,48 @@ func init() {
 	mdsthrashCmd.Flags().IntVar(&maxReadFiles, "max-read-files", 0, "maximum number of files to read/unlink per phase (0 = unlimited)")
 }
 
-func runMDSThrash(testDir string) error {
+// validateMDSThrashParameters validates mdsthrash-specific command line parameters
+func validateMDSThrashParameters() error {
+	//validate dir count
+	if dirCount < 1 {
+		return fmt.Errorf("--dirs must be a positive integer, got %d", dirCount)
+	}
+	fmt.Println(dirCount)
+	config.DirCount = dirCount
+
+	//validate files per batch
+	if filesPerBatch < 1 {
+		return fmt.Errorf("--files-per-batch must be a positive integer, got %d", filesPerBatch)
+	}
+	config.FilesPerBatch = filesPerBatch
+
+	// validate files per move
+	if filesPerMove < 0 {
+		return fmt.Errorf("--files-per-move must be a positive integer, got %d", filesPerMove)
+	}
+	config.FilesPerMove = filesPerMove
+
+	// validate fsync close frequence
+	if fsyncCloseFreq < 0 || fsyncCloseFreq > 100 {
+		return fmt.Errorf("--fsync-close-freq must be beteween 0-100, got %d", fsyncCloseFreq)
+	}
+	config.FsyncCloseFreq = fsyncCloseFreq
+
 	return nil
 }
 
-// validateMDSThrashParameters validates mdsthrash-specific command line parameters
-func validateMDSThrashParameters() error {
-	//NYI
+// runMDSThrash actually executes the test
+func runMDSThrash() error {
+	// use config from package scope
+	iotest, err := iotest.New(config)
+	if err != nil {
+		return fmt.Errorf("couldn't initialize iotest, %v", err)
+	}
+
+	err = iotest.StartMDSThrash()
+	if err != nil {
+		return fmt.Errorf("couldn't run iotest, %v", err)
+	}
+
 	return nil
 }

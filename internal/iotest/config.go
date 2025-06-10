@@ -13,7 +13,7 @@ import "time"
 // Config holds all configuration parameters for iolyzer tests
 type Config struct {
 	TestDir      string        // test directory where test files will be created
-	FileSize     int           // size of each test file in bytes
+	FileSize     int64         // size of each test file in bytes
 	BlockSize    int           // size of each io operation in bytes
 	ParallelJobs int           // number of parallel worker processes
 	TestDuration time.Duration // duration to run the test
@@ -37,7 +37,7 @@ type Config struct {
 }
 
 // New creates a new Config instance with sensible default values
-func New() *Config {
+func NewConfig() *Config {
 	return &Config{
 		TestDir:        "./iolyzer_test/", // default test directory in current working directory
 		FileSize:       10485760,          // 10 MiB
