@@ -80,7 +80,7 @@ func init() {
 
 	// file size flag - override default for mdsthrash (small files)
 	mdsthrashCmd.PersistentFlags().Int64VarP(&fileSize, "size", "s", 4, "size of each test file in KiB")
-	
+
 	// mdsthrash-specific flags
 	mdsthrashCmd.Flags().IntVar(&dirCount, "dirs", 8, "number of directories to create in in/ and out/ (01..NN)")
 	mdsthrashCmd.Flags().IntVar(&filesPerBatch, "files-per-batch", 10, "number of files to create in a directory before moving to next")
@@ -95,7 +95,7 @@ func runMDSThrash(testDir string) error {
 	if err != nil {
 		return fmt.Errorf("invalid output format: %w", err)
 	}
-	
+
 	// validate mdsthrash-specific parameters
 	if err := validateMDSThrashParameters(); err != nil {
 		return fmt.Errorf("invalid parameters: %w", err)
@@ -125,7 +125,7 @@ func runMDSThrash(testDir string) error {
 
 	// create test configuration using constructor with defaults
 	config := runners.NewTestConfig()
-	
+
 	// override defaults with command line values
 	config.ParallelJobs = parallelJobs
 	config.TestDir = testDir
@@ -147,21 +147,21 @@ func runMDSThrash(testDir string) error {
 
 	// convert detailed result to output package format to avoid circular imports
 	outputResult := output.MDSThrashResult{
-		CreateCount:   mdsThrashResult.CreateCount,
-		WriteCount:    mdsThrashResult.WriteCount,
-		ReadCount:     mdsThrashResult.ReadCount,
-		MoveCount:     mdsThrashResult.MoveCount,
-		UnlinkCount:   mdsThrashResult.UnlinkCount,
-		CreateErrors:  mdsThrashResult.CreateErrors,
-		WriteErrors:   mdsThrashResult.WriteErrors,
-		ReadErrors:    mdsThrashResult.ReadErrors,
-		MoveErrors:    mdsThrashResult.MoveErrors,
-		UnlinkErrors:  mdsThrashResult.UnlinkErrors,
-		BytesRead:     mdsThrashResult.BytesRead,
-		BytesWritten:  mdsThrashResult.BytesWritten,
-		Duration:      mdsThrashResult.Duration,
+		CreateCount:  mdsThrashResult.CreateCount,
+		WriteCount:   mdsThrashResult.WriteCount,
+		ReadCount:    mdsThrashResult.ReadCount,
+		MoveCount:    mdsThrashResult.MoveCount,
+		UnlinkCount:  mdsThrashResult.UnlinkCount,
+		CreateErrors: mdsThrashResult.CreateErrors,
+		WriteErrors:  mdsThrashResult.WriteErrors,
+		ReadErrors:   mdsThrashResult.ReadErrors,
+		MoveErrors:   mdsThrashResult.MoveErrors,
+		UnlinkErrors: mdsThrashResult.UnlinkErrors,
+		BytesRead:    mdsThrashResult.BytesRead,
+		BytesWritten: mdsThrashResult.BytesWritten,
+		Duration:     mdsThrashResult.Duration,
 	}
-	
+
 	// copy latency statistics
 	outputResult.CreateLatency = convertLatencyStats(mdsThrashResult.CreateLatency)
 	outputResult.WriteLatency = convertLatencyStats(mdsThrashResult.WriteLatency)
@@ -194,8 +194,8 @@ func convertLatencyStats(src runners.LatencyStats) output.LatencyStats {
 
 // validateMDSThrashParameters validates mdsthrash-specific command line parameters
 func validateMDSThrashParameters() error {
-  //NYI
-  return nil
+	//NYI
+	return nil
 }
 
 // /*
@@ -218,12 +218,12 @@ func validateMDSThrashParameters() error {
 // 	Long: `Attempts to create hundreds of small files per second, write tiny amounts to them,
 //   mass move them to another dir, and later attmpts to unlink files created previously.
 //
-//   This test is designed around the particulars of the Ceph MDS, in particular, it tries to 
+//   This test is designed around the particulars of the Ceph MDS, in particular, it tries to
 //   make the MDS feel as much pain as possible. Many small files will cause MDS trim issues,
-//   and if iolyzer is run from multiple hosts, it almost guarantees that write capabilities 
+//   and if iolyzer is run from multiple hosts, it almost guarantees that write capabilities
 //   on parent dentries will thrash between hosts constantly.
 //
-//   Running this test from only one client will not thrash capabilities, and will likely not 
+//   Running this test from only one client will not thrash capabilities, and will likely not
 //   give any meaningful results.`,
 // 	Run: func(cmd *cobra.Command, args []string) {
 // 		fmt.Println("mdsthrash called")
@@ -255,14 +255,14 @@ func validateMDSThrashParameters() error {
 // func runMDSThrash(testDir string) {
 //
 // 	//  ensure dirs are created _testdir_/{in,out}/{1..N} where N is num_dirs
-//   //  not sure if existing layout code can be used for this  
+//   //  not sure if existing layout code can be used for this
 //
-//   c := runners.TestConfig{TestDir: testDir} // configs should be populated based on args 
+//   c := runners.TestConfig{TestDir: testDir} // configs should be populated based on args
 //   result, err := runners.MDSThrashTest(c)
 //   if err != nil {
-//     // do something 
+//     // do something
 //   }
 //
-//   // display result 
+//   // display result
 //   fmt.Println(result)
 // }

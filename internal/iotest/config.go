@@ -1,10 +1,10 @@
 /*
- * 
+ *
  * jesse galley <jesse@jessegalley.net>
- */ 
+ */
 
-// Package iotest abstracts the various test scenarios that 
-// can be run with iolyzer. Some tests have different options 
+// Package iotest abstracts the various test scenarios that
+// can be run with iolyzer. Some tests have different options
 // and different result sets
 package iotest
 
