@@ -9,14 +9,14 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/jessegalley/iolyzer/internal/iotest"
+	cfg "github.com/jessegalley/iolyzer/internal/config"
 	"github.com/jessegalley/iolyzer/internal/output"
 	"github.com/spf13/cobra"
 )
 
 // program flags defined as global variables for access across functions
 var (
-	config *iotest.Config // config struct to hold all config
+	config *cfg.Config // config struct to hold all config
 
 	// previously used global scope vars for config, these will be refactored
 	// out, but the config change needs to first be refactored dow into
@@ -98,7 +98,7 @@ func init() {
 func validateParameters() error {
 	// new iotest.Config struct will be addeed here, but not yet
 	// refactored into mixedrw comand yet
-	config = iotest.NewConfig()
+	config = cfg.NewConfig()
 
 	// validate base file name
 	if fileName == "" {

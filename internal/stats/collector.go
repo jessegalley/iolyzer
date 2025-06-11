@@ -1,4 +1,4 @@
-package iotest
+package stats
 
 import (
 	"context"

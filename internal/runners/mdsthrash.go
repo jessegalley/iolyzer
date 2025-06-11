@@ -9,7 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jessegalley/iolyzer/internal/iotest"
+	"github.com/jessegalley/iolyzer/internal/config"
+	"github.com/jessegalley/iolyzer/internal/stats"
 )
 
 // MDSThrashResult contains the results from a completed mdsthrash test
@@ -25,7 +26,7 @@ type MDSThrashResult struct {
 }
 
 // RunMDSThrash executes the mdsthrash test with the provided configuration and collector
-func RunMDSThrash(config *iotest.Config, collector *iotest.StatsCollector) (MDSThrashResult, error) {
+func RunMDSThrash(config *config.Config, collector *stats.StatsCollector) (MDSThrashResult, error) {
 	// create context for coordinating worker shutdown
 	ctx, cancel := context.WithTimeout(context.Background(), config.TestDuration)
 	defer cancel()
@@ -66,13 +67,13 @@ func RunMDSThrash(config *iotest.Config, collector *iotest.StatsCollector) (MDST
 }
 
 // runMDSThrashWorker simulates a single worker performing mdsthrash operations
-func runMDSThrashWorker(ctx context.Context, workerID int, config *iotest.Config, collector *iotest.StatsCollector) {
+func runMDSThrashWorker(ctx context.Context, workerID int, config *config.Config, collector *stats.StatsCollector) {
 	// determine whether to collect latency based on collector configuration
 	// this could also be passed as a separate parameter if needed
 	collectLatency := true // assume latency collection for now, could be derived from config
 
 	// create worker statistics tracker
-	tracker := iotest.NewWorkerStatsTracker(workerID, collector, 500*time.Millisecond, collectLatency)
+	tracker := stats.NewWorkerStatsTracker(workerID, collector, 500*time.Millisecond, collectLatency)
 	defer tracker.Finalize()
 
 	// create worker-specific random number generator for consistent behavior
@@ -119,7 +120,7 @@ func runMDSThrashWorker(ctx context.Context, workerID int, config *iotest.Config
 }
 
 // performCreateAndWrite simulates creating a file and writing data to it
-func performCreateAndWrite(tracker *iotest.WorkerStatsTracker, rng *rand.Rand, config *iotest.Config, collectLatency bool) {
+func performCreateAndWrite(tracker *stats.WorkerStatsTracker, rng *rand.Rand, config *config.Config, collectLatency bool) {
 	// simulate file creation operation
 	// TODO: replace with actual file creation (os.Create, etc.)
 	createLatency := simulateLatency(rng, 50, 200) // 50-200 microseconds
@@ -151,7 +152,7 @@ func performCreateAndWrite(tracker *iotest.WorkerStatsTracker, rng *rand.Rand, c
 }
 
 // performMoveOperation simulates moving files from input to output directory
-func performMoveOperation(tracker *iotest.WorkerStatsTracker, rng *rand.Rand, config *iotest.Config, collectLatency bool) {
+func performMoveOperation(tracker *stats.WorkerStatsTracker, rng *rand.Rand, config *config.Config, collectLatency bool) {
 	// simulate move/rename operation
 	// TODO: replace with actual move operation (os.Rename, etc.)
 	moveLatency := simulateLatency(rng, 200, 800) // 200-800 microseconds
@@ -163,7 +164,7 @@ func performMoveOperation(tracker *iotest.WorkerStatsTracker, rng *rand.Rand, co
 }
 
 // performReadAndUnlink simulates reading file content and then unlinking it
-func performReadAndUnlink(tracker *iotest.WorkerStatsTracker, rng *rand.Rand, config *iotest.Config, collectLatency bool) {
+func performReadAndUnlink(tracker *stats.WorkerStatsTracker, rng *rand.Rand, config *config.Config, collectLatency bool) {
 	// simulate reading file content
 	// TODO: replace with actual read operation (file.Read, ioutil.ReadFile, etc.)
 	readLatency := simulateLatency(rng, 80, 300) // 80-300 microseconds

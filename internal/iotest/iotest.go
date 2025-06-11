@@ -13,14 +13,17 @@ import (
 	"os"
 	"time"
 
+	"github.com/jessegalley/iolyzer/internal/config"
 	"github.com/jessegalley/iolyzer/internal/layout"
+	"github.com/jessegalley/iolyzer/internal/runners"
+	"github.com/jessegalley/iolyzer/internal/stats"
 )
 
 type IOTest struct {
-	Config *Config
+	Config *config.Config
 }
 
-func New(config *Config) (*IOTest, error) {
+func New(config *config.Config) (*IOTest, error) {
 	return &IOTest{Config: config}, nil
 }
 
@@ -41,17 +44,17 @@ func (t *IOTest) StartMDSThrash() error {
 	}
 
 	// set up stats collector
-	collector := NewStatsCollector(100, 10, true)
+	collector := stats.NewStatsCollector(100, 10, true)
 
 	// create display with configuration
-	displayConfig := DisplayConfig{
+	displayConfig := stats.DisplayConfig{
 		UpdateInterval: 1 * time.Second,
 		ShowLatency:    true,
 		ShowProgress:   true,
 		TestDuration:   30 * time.Second,
 		Quiet:          false,
 	}
-	display := NewStatsDisplay(collector, displayConfig)
+	display := stats.NewStatsDisplay(collector, displayConfig)
 
 	// start both collector and display
 	collector.Start()
