@@ -11,6 +11,7 @@ package iotest
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/jessegalley/iolyzer/internal/layout"
 )
@@ -40,12 +41,34 @@ func (t *IOTest) StartMDSThrash() error {
 	}
 
 	// set up stats collector
-	sc := NewStatsCollector(128, 128, true)
-	sc.Start()
+	collector := NewStatsCollector(100, 10, true)
 
-	// set up display?
-	// run workers
-	// display totals
+	// create display with configuration
+	displayConfig := DisplayConfig{
+		UpdateInterval: 1 * time.Second,
+		ShowLatency:    true,
+		ShowProgress:   true,
+		TestDuration:   30 * time.Second,
+		Quiet:          false,
+	}
+	display := NewStatsDisplay(collector, displayConfig)
+
+	// start both collector and display
+	collector.Start()
+	display.Start()
+
+	time.Sleep(t.Config.TestDuration)
+	// run test here...
+	// workers would be sending updates to collector
+	// display automatically shows live updates
+
+	// when test completes
+	collector.Stop()
+	display.Stop()
+
+	// show final summary
+	finalStats := collector.GetFinalStats()
+	display.ShowFinalSummary(finalStats)
 
 	fmt.Println("started mds thrash test...")
 	return nil
