@@ -39,6 +39,10 @@ func (t *IOTest) StartMDSThrash() error {
 		}
 	}
 
+	// set up stats collector
+	sc := NewStatsCollector(128, 128, true)
+	sc.Start()
+
 	// set up display?
 	// run workers
 	// display totals
