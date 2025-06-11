@@ -57,7 +57,8 @@ func (t *IOTest) StartMDSThrash() error {
 	collector.Start()
 	display.Start()
 
-	time.Sleep(t.Config.TestDuration)
+	// time.Sleep(t.Config.TestDuration)
+	runners.RunMDSThrash(t.Config, collector)
 	// run test here...
 	// workers would be sending updates to collector
 	// display automatically shows live updates
