@@ -71,7 +71,7 @@ func init() {
 	rootCmd.AddCommand(mdsthrashCmd)
 
 	// file size flag - override default for mdsthrash (small files)
-	mdsthrashCmd.PersistentFlags().Int64VarP(&fileSize, "size", "s", 4, "size of each test file in KiB")
+	// mdsthrashCmd.PersistentFlags().Int64VarP(&fileSize, "size", "s", 4, "size of each test file in KiB")
 
 	// mdsthrash-specific flags
 	mdsthrashCmd.Flags().IntVar(&dirCount, "dirs", 8, "number of directories to create in in/ and out/ (01..NN)")

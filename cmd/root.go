@@ -10,6 +10,7 @@ import (
 	"time"
 
 	// "github.com/davecgh/go-spew/spew"
+	"github.com/jessegalley/go-filesize"
 	cfg "github.com/jessegalley/iolyzer/internal/config"
 	"github.com/jessegalley/iolyzer/internal/output"
 	"github.com/spf13/cobra"
@@ -23,8 +24,9 @@ var (
 	// out, but the config change needs to first be refactored dow into
 	// mixedrw command to avoid regression issues
 	// TODO: refactor global vars to config struct
-	testDir      string        // directory in which to make test files
-	fileSize     int64         // size of test files in bytes
+	testDir string // directory in which to make test files
+	// fileSize     int64         // size of test files in bytes
+	fileSize     string        // size of test files
 	fileName     string        // base name for test files
 	blockSize    int           // block size for io operations in bytes
 	testDuration time.Duration // duration of test
@@ -81,6 +83,7 @@ func init() {
 	//      then refactor where the size args are parsed (root vs cmd)
 
 	rootCmd.PersistentFlags().StringVar(&fileName, "file", "iolyzer_test", "base name for test files")
+	rootCmd.PersistentFlags().StringVarP(&fileSize, "size", "s", "16 KiB", "size of test files (1M, 16 KiB, 5 MB, etc)")
 	rootCmd.PersistentFlags().IntVarP(&blockSize, "block", "b", 4096, "block size for io operations in bytes")
 	rootCmd.PersistentFlags().DurationVarP(&testDuration, "runtime", "t", time.Second*30, "duration of test (e.g. 30s, 5m, 500ms) ")
 	rootCmd.PersistentFlags().IntVarP(&parallelJobs, "parallel-jobs", "P", 1, "number of parallel jobs")
@@ -106,6 +109,16 @@ func validateParameters() error {
 		return fmt.Errorf("filename must not be empty")
 	}
 	config.FileName = fileName
+
+	// validate file size
+	config.FileSize = int64(len(fileSize))
+	bytes, err := filesize.ParseSize(fileSize)
+	if err != nil {
+		return fmt.Errorf("--size/-s must be a filesize format (4096, 4k, 10M, 5MiB, etc)")
+	}
+	config.FileSize = bytes
+	// spew.Dump(config)
+	// os.Exit(99)
 
 	// validate block size
 	if blockSize <= 0 {

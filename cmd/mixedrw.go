@@ -54,7 +54,7 @@ If test_path is not provided, iolyzer will try to make and use ./iolyzer_test`,
 
 func init() {
 	rootCmd.AddCommand(mixedrwCmd)
-	mixedrwCmd.PersistentFlags().Int64VarP(&fileSize, "size", "s", 100, "size of each test file in MiB")
+	// mixedrwCmd.PersistentFlags().Int64VarP(&fileSize, "size", "s", 100, "size of each test file in MiB")
 	mixedrwCmd.Flags().IntVar(&rwmix, "rwmix", 75, "percentage of operations that should be reads (0-100)")
 }
 
@@ -63,10 +63,10 @@ func validateMixedRWParameters() error {
 	//TODO: propagate config refactor down into this test code
 
 	// validate file size
-	if fileSize <= 0 {
-		return fmt.Errorf("--size must be a positive integer, got %v", fileSize)
-	}
-	config.FileSize = fileSize
+	// if fileSize <= 0 {
+	// 	return fmt.Errorf("--size must be a positive integer, got %v", fileSize)
+	// }
+	// config.FileSize = fileSize
 
 	if rwmix < 0 || rwmix > 100 {
 		return fmt.Errorf("--rwmix must be between 1 and 100, got %d", rwmix)
@@ -94,7 +94,8 @@ func runMixedRW(testDir string) {
 		}
 
 		// create the test file
-		if err := layout.LayoutTestFile(absPath, int(fileSize*1024*1024), reinitFile); err != nil {
+		// if err := layout.LayoutTestFile(absPath, int(fileSize*1024*1024), reinitFile); err != nil {
+		if err := layout.LayoutTestFile(absPath, int(config.FileSize), reinitFile); err != nil {
 			fmt.Fprintf(os.Stderr, "failed to create test file %s: %v", workerFile, err)
 		}
 
