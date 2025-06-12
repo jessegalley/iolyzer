@@ -38,7 +38,7 @@ type workerState struct {
 }
 
 // RunMDSThrash executes the mdsthrash test with the provided configuration and collector
-func RunMDSThrash(config *config.Config, collector *stats.StatsCollector) (MDSThrashResult, error) {
+func RunMDSThrash(config *config.Config, collector *stats.StatsCollector) error {
 	// create context for coordinating worker shutdown
 	ctx, cancel := context.WithTimeout(context.Background(), config.TestDuration)
 	defer cancel()
@@ -58,24 +58,32 @@ func RunMDSThrash(config *config.Config, collector *stats.StatsCollector) (MDSTh
 	// wait for all workers to complete
 	wg.Wait()
 
+	//
+	// don't need to call the collector final stats here, it can
+	// be called above this in the iotest package where the
+	// collector and display threads are created
+	// calling it here can potentially cause a race condition anyway
+	//
+
 	// get final statistics from collector
-	finalStats := collector.GetFinalStats()
+	// finalStats := collector.GetFinalStats()
 
-	// create result summary for compatibility/logging
-	result := MDSThrashResult{
-		TestDuration: time.Duration(finalStats.TestDuration * float64(time.Second)),
-		CreateOps:    finalStats.TotalCounts["create"],
-		WriteOps:     finalStats.TotalCounts["write"],
-		MoveOps:      finalStats.TotalCounts["move"],
-		ReadOps:      finalStats.TotalCounts["read"],
-		UnlinkOps:    finalStats.TotalCounts["unlink"],
-		FsyncOps:     finalStats.TotalCounts["fsync"],
-	}
+	// // create result summary for compatibility/logging
+	// result := MDSThrashResult{
+	// 	TestDuration: time.Duration(finalStats.TestDuration * float64(time.Second)),
+	// 	CreateOps:    finalStats.TotalCounts["create"],
+	// 	WriteOps:     finalStats.TotalCounts["write"],
+	// 	MoveOps:      finalStats.TotalCounts["move"],
+	// 	ReadOps:      finalStats.TotalCounts["read"],
+	// 	UnlinkOps:    finalStats.TotalCounts["unlink"],
+	// 	FsyncOps:     finalStats.TotalCounts["fsync"],
+	// }
+	//
+	// // calculate total files processed (creates are new files)
+	// result.TotalFiles = result.CreateOps
 
-	// calculate total files processed (creates are new files)
-	result.TotalFiles = result.CreateOps
-
-	return result, nil
+	// return result, nil
+	return nil
 }
 
 // runMDSThrashWorker performs metadata operations for a single worker thread
@@ -198,12 +206,12 @@ func performCreateAndWrite(tracker *stats.WorkerStatsTracker, rng *mathrand.Rand
 
 	// create the file
 	file, err := os.Create(filePath)
+	createLatency := time.Since(createStart)
 	if err != nil {
 		return fmt.Errorf("failed to create file %s: %w", filePath, err)
 	}
 
 	// record create operation timing
-	createLatency := time.Since(createStart)
 	if collectLatency {
 		tracker.RecordOperation("create", createLatency)
 	} else {
@@ -222,16 +230,16 @@ func performCreateAndWrite(tracker *stats.WorkerStatsTracker, rng *mathrand.Rand
 	writeData := make([]byte, dataSize)
 	// pprof shows that just slamming crypto rand here is a cpu hog
 	// _, err = rand.Read(writeData)
+	//  if err != nil {
+	// 	file.Close()
+	// 	return fmt.Errorf("failed to generate random data: %w", err)
+	// }
 
 	// if i so some simple little pattern of bytes instead it should
 	// be a bit easier on the cpus
 	pattern := byte(state.workerID % 256)
 	for i := range writeData {
 		writeData[i] = pattern
-	}
-	if err != nil {
-		file.Close()
-		return fmt.Errorf("failed to generate random data: %w", err)
 	}
 
 	// measure write operation latency
