@@ -4,7 +4,7 @@ package runners
 
 import (
 	"context"
-	"crypto/rand"
+	// "crypto/rand"
 	"fmt"
 	"io"
 	mathrand "math/rand"
@@ -220,7 +220,15 @@ func performCreateAndWrite(tracker *stats.WorkerStatsTracker, rng *mathrand.Rand
 	}
 
 	writeData := make([]byte, dataSize)
-	_, err = rand.Read(writeData)
+	// pprof shows that just slamming crypto rand here is a cpu hog
+	// _, err = rand.Read(writeData)
+
+	// if i so some simple little pattern of bytes instead it should
+	// be a bit easier on the cpus
+	pattern := byte(state.workerID % 256)
+	for i := range writeData {
+		writeData[i] = pattern
+	}
 	if err != nil {
 		file.Close()
 		return fmt.Errorf("failed to generate random data: %w", err)
