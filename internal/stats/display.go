@@ -27,6 +27,8 @@ type StatsDisplay struct {
 	wg             sync.WaitGroup     // wait group for coordinating goroutine shutdown
 	lastStats      AggregatedStats    // most recent statistics for comparison
 	startTime      time.Time          // when the display started
+	displayHeight  int
+	headerShown    bool // tracks if header has been displayed
 }
 
 // NewStatsDisplay creates a new statistics display with the specified configuration
@@ -38,6 +40,8 @@ func NewStatsDisplay(collector *StatsCollector, config DisplayConfig) *StatsDisp
 		ctx:            ctx,
 		cancel:         cancel,
 		startTime:      time.Now(),
+		headerShown:    false,
+		displayHeight:  0,
 	}
 }
 
@@ -47,6 +51,9 @@ func (sd *StatsDisplay) Start() {
 		// in quiet mode, don't start the display goroutine
 		return
 	}
+
+	// clear terminal at startup to prevent artifacts
+	sd.clearTerminal()
 
 	sd.wg.Add(1)
 	go sd.displayLoop()
@@ -60,9 +67,9 @@ func (sd *StatsDisplay) Stop() {
 
 // ShowFinalSummary displays the final test results in a comprehensive format
 func (sd *StatsDisplay) ShowFinalSummary(finalStats AggregatedStats) {
-	// clear any live display artifacts
+	// clear any live display artifacts if we were showing live updates
 	if !sd.config.Quiet {
-		fmt.Print("\033[2J\033[H") // clear screen and move cursor to top
+		sd.clearTerminal()
 	}
 
 	fmt.Printf("\n=== Final Test Results ===\n\n")
@@ -117,12 +124,12 @@ func (sd *StatsDisplay) ShowFinalSummary(finalStats AggregatedStats) {
 func (sd *StatsDisplay) displayLoop() {
 	defer sd.wg.Done()
 
-	// create a ticker for regular display updates
+	// create a ticker for regular display updates to enforce minimum update interval
 	ticker := time.NewTicker(sd.config.UpdateInterval)
 	defer ticker.Stop()
 
-	// track if we've shown the header yet
-	headerShown := false
+	// track when we last updated to prevent excessive updates
+	lastUpdateTime := time.Now()
 
 	for {
 		select {
@@ -131,11 +138,19 @@ func (sd *StatsDisplay) displayLoop() {
 				// channel closed, display is done
 				return
 			}
-			sd.processStatsUpdate(stats, &headerShown)
+			// always store the latest stats, but only display if enough time has passed
+			sd.lastStats = stats
+			if time.Since(lastUpdateTime) >= sd.config.UpdateInterval {
+				sd.showLiveStats(stats)
+				lastUpdateTime = time.Now()
+			}
 
 		case <-ticker.C:
-			// periodic refresh even if no new stats (for progress bar updates)
-			sd.refreshDisplay(&headerShown)
+			// periodic refresh using stored stats (mainly for progress bar updates)
+			if sd.lastStats.TestDuration > 0 {
+				sd.showLiveStats(sd.lastStats)
+				lastUpdateTime = time.Now()
+			}
 
 		case <-sd.ctx.Done():
 			// context cancelled, display is done
@@ -145,30 +160,23 @@ func (sd *StatsDisplay) displayLoop() {
 }
 
 // processStatsUpdate handles a new statistics update from the collector
-func (sd *StatsDisplay) processStatsUpdate(stats AggregatedStats, headerShown *bool) {
+// this method is no longer needed since we simplified the display logic
+// keeping it for compatibility but it just calls showLiveStats directly
+func (sd *StatsDisplay) processStatsUpdate(stats AggregatedStats) {
 	sd.lastStats = stats
-	sd.showLiveStats(stats, headerShown)
-}
-
-// refreshDisplay updates the display even without new statistics (for progress bar)
-func (sd *StatsDisplay) refreshDisplay(headerShown *bool) {
-	if sd.lastStats.TestDuration > 0 {
-		sd.showLiveStats(sd.lastStats, headerShown)
-	}
+	sd.showLiveStats(stats)
 }
 
 // showLiveStats displays current statistics in a live updating format
-func (sd *StatsDisplay) showLiveStats(stats AggregatedStats, headerShown *bool) {
-	// move cursor to top of screen for live updates
-	if *headerShown {
-		fmt.Print("\033[H") // move cursor to top
+func (sd *StatsDisplay) showLiveStats(stats AggregatedStats) {
+	// for subsequent updates, clear the entire display and start fresh
+	if sd.headerShown {
+		sd.clearTerminal()
 	}
 
-	// show header if this is the first display
-	if !*headerShown {
-		fmt.Printf("=== Live Test Statistics ===\n\n")
-		*headerShown = true
-	}
+	// show header (always show it after clearing)
+	fmt.Printf("=== Live Test Statistics ===\n\n")
+	sd.headerShown = true
 
 	// show progress bar if enabled
 	if sd.config.ShowProgress && sd.config.TestDuration > 0 {
@@ -178,7 +186,7 @@ func (sd *StatsDisplay) showLiveStats(stats AggregatedStats, headerShown *bool) 
 			progress = 1.0
 		}
 		sd.showProgressBar(progress, elapsed, sd.config.TestDuration)
-		fmt.Printf("\n")
+		fmt.Printf("\n\n")
 	}
 
 	// show elapsed time
@@ -195,40 +203,37 @@ func (sd *StatsDisplay) showLiveStats(stats AggregatedStats, headerShown *bool) 
 	operations := sd.getSortedOperations(stats.TotalCounts)
 	if len(operations) == 0 {
 		fmt.Printf("No operations recorded yet...\n")
-		return
-	}
-
-	// display current IOPS
-	fmt.Printf("%-12s %12s %12s", "Operation", "Count", "IOPS")
-	if stats.HasLatencyData && sd.config.ShowLatency {
-		fmt.Printf(" %10s", "Latency")
-	}
-	fmt.Printf("\n")
-
-	fmt.Printf("%-12s %12s %12s", "─────────", "─────", "────")
-	if stats.HasLatencyData && sd.config.ShowLatency {
-		fmt.Printf(" %10s", "───────")
-	}
-	fmt.Printf("\n")
-
-	for _, op := range operations {
-		count := stats.TotalCounts[op]
-		iops := stats.IOPS[op]
-		fmt.Printf("%-12s %12d %12.2f", op, count, iops)
-
-		// show average latency if available
+	} else {
+		// display current IOPS header
+		fmt.Printf("%-12s %12s %12s", "Operation", "Count", "IOPS")
 		if stats.HasLatencyData && sd.config.ShowLatency {
-			if latency, exists := stats.LatencyStats[op]; exists && latency.Count > 0 {
-				fmt.Printf(" %8.1fμs", latency.MeanUs)
-			} else {
-				fmt.Printf(" %10s", "─")
-			}
+			fmt.Printf(" %10s", "Latency")
 		}
 		fmt.Printf("\n")
-	}
 
-	// clear any remaining lines from previous longer displays
-	fmt.Printf("\033[J") // clear from cursor to end of screen
+		fmt.Printf("%-12s %12s %12s", "─────────", "─────", "────")
+		if stats.HasLatencyData && sd.config.ShowLatency {
+			fmt.Printf(" %10s", "───────")
+		}
+		fmt.Printf("\n")
+
+		// display data rows
+		for _, op := range operations {
+			count := stats.TotalCounts[op]
+			iops := stats.IOPS[op]
+			fmt.Printf("%-12s %12d %12.2f", op, count, iops)
+
+			// show average latency if available
+			if stats.HasLatencyData && sd.config.ShowLatency {
+				if latency, exists := stats.LatencyStats[op]; exists && latency.Count > 0 {
+					fmt.Printf(" %8.1fμs", latency.MeanUs)
+				} else {
+					fmt.Printf(" %10s", "─")
+				}
+			}
+			fmt.Printf("\n")
+		}
+	}
 }
 
 // showProgressBar displays a visual progress bar for the test
@@ -275,44 +280,17 @@ func (sd *StatsDisplay) getSortedOperations(counts map[string]int64) []string {
 	return operations
 }
 
+// clearTerminal completely clears the terminal screen and moves cursor to top
+func (sd *StatsDisplay) clearTerminal() {
+	fmt.Print("\033[2J\033[H") // clear entire screen and move cursor to top-left
+}
+
 // ClearDisplay clears the terminal display (useful for tests or manual control)
 func (sd *StatsDisplay) ClearDisplay() {
-	fmt.Print("\033[2J\033[H") // clear screen and move cursor to top
+	sd.clearTerminal()
 }
 
 // SetQuiet enables or disables quiet mode during test execution
 func (sd *StatsDisplay) SetQuiet(quiet bool) {
 	sd.config.Quiet = quiet
-}
-
-// example usage function showing how to integrate with existing iotest code
-func ExampleDisplayUsage() {
-	// create stats collector
-	collector := NewStatsCollector(100, 10, true)
-
-	// create display with configuration
-	displayConfig := DisplayConfig{
-		UpdateInterval: 1 * time.Second,
-		ShowLatency:    true,
-		ShowProgress:   true,
-		TestDuration:   30 * time.Second,
-		Quiet:          false,
-	}
-	display := NewStatsDisplay(collector, displayConfig)
-
-	// start both collector and display
-	collector.Start()
-	display.Start()
-
-	// run test here...
-	// workers would be sending updates to collector
-	// display automatically shows live updates
-
-	// when test completes
-	collector.Stop()
-	display.Stop()
-
-	// show final summary
-	finalStats := collector.GetFinalStats()
-	display.ShowFinalSummary(finalStats)
 }
