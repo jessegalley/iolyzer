@@ -13,6 +13,7 @@ import (
 	"os"
 	"time"
 
+	// "github.com/davecgh/go-spew/spew"
 	"github.com/jessegalley/iolyzer/internal/config"
 	"github.com/jessegalley/iolyzer/internal/layout"
 	"github.com/jessegalley/iolyzer/internal/runners"
@@ -34,6 +35,8 @@ func (t *IOTest) StartMixedRW() {
 // StartMDSThrash executes the MDS Thrash test
 func (t *IOTest) StartMDSThrash() error {
 
+	// spew.Dump(t.Config)
+
 	// ensure that the test directories exist before proceeding
 	if err := layout.ValidateMDSThrashDirectories(t.Config.TestDir, t.Config.DirCount); err != nil {
 		fmt.Fprintf(os.Stderr, "test directories don't exist, creating them\n")
@@ -48,10 +51,10 @@ func (t *IOTest) StartMDSThrash() error {
 
 	// create display with configuration
 	displayConfig := stats.DisplayConfig{
-		UpdateInterval: 1 * time.Second,
+		UpdateInterval: 500 * time.Millisecond,
 		ShowLatency:    true,
 		ShowProgress:   true,
-		TestDuration:   30 * time.Second,
+		TestDuration:   t.Config.TestDuration,
 		Quiet:          false,
 	}
 	display := stats.NewStatsDisplay(collector, displayConfig)
@@ -74,6 +77,6 @@ func (t *IOTest) StartMDSThrash() error {
 	finalStats := collector.GetFinalStats()
 	display.ShowFinalSummary(finalStats)
 
-	fmt.Println("started mds thrash test...")
+	// fmt.Println("started mds thrash test...")
 	return nil
 }

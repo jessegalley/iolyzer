@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"time"
 
+	// "github.com/davecgh/go-spew/spew"
 	cfg "github.com/jessegalley/iolyzer/internal/config"
 	"github.com/jessegalley/iolyzer/internal/output"
 	"github.com/spf13/cobra"
@@ -117,6 +118,8 @@ func validateParameters() error {
 		return fmt.Errorf("test durection must be positive, got %v", testDuration)
 	}
 	config.TestDuration = testDuration
+	// spew.Dump(testDuration)
+	// spew.Dump(config.TestDuration)
 
 	// validate number of parallel jobs
 	if parallelJobs < 1 {
@@ -143,11 +146,11 @@ func validateParameters() error {
 	config.OutFmt = outFmt
 
 	if verbose > 0 {
-		fmt.Println("verbosity level:", verbose)
+		// fmt.Println("verbosity level:", verbose)
 	}
 
 	if debug {
-		fmt.Println("debug messages enabled")
+		// fmt.Println("debug messages enabled")
 	}
 
 	return nil

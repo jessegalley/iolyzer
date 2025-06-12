@@ -87,7 +87,7 @@ func validateMDSThrashParameters() error {
 	if dirCount < 1 {
 		return fmt.Errorf("--dirs must be a positive integer, got %d", dirCount)
 	}
-	fmt.Println(dirCount)
+	// fmt.Println(dirCount)
 	config.DirCount = dirCount
 
 	//validate files per batch
