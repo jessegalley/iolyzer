@@ -60,13 +60,8 @@ func init() {
 
 func validateMixedRWParameters() error {
 
-	//TODO: propagate config refactor down into this test code
-
-	// validate file size
-	// if fileSize <= 0 {
-	// 	return fmt.Errorf("--size must be a positive integer, got %v", fileSize)
-	// }
-	// config.FileSize = fileSize
+	//TODO: refactor mixedrw test to use config struct instead of global vars
+	//TODO: refactor mixedrw test to stats collector and display architecture
 
 	if rwmix < 0 || rwmix > 100 {
 		return fmt.Errorf("--rwmix must be between 1 and 100, got %d", rwmix)

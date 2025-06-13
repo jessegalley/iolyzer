@@ -1,5 +1,6 @@
 // package runners contains io testing functionality
 // common to all tests
+// TODO: refactor mixedrw and deprecate TestResult and WorkerConfig
 package runners
 
 import (

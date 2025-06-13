@@ -42,7 +42,7 @@ var (
 )
 
 // program info const
-const progVersion string = "0.2.0"
+const progVersion string = "0.3.0"
 const progAuthor string = "jesse galley <jesse@jessegalley.net>"
 
 // rootCmd represents the base command when called without any subcommands
@@ -79,9 +79,7 @@ func Execute() {
 }
 
 func init() {
-	//TODO: convert block size and file size args to SI/IEC notation
-	//      then refactor where the size args are parsed (root vs cmd)
-
+	// options that are global to _all_ commands
 	rootCmd.PersistentFlags().StringVar(&fileName, "file", "iolyzer_test", "base name for test files")
 	rootCmd.PersistentFlags().StringVarP(&fileSize, "size", "s", "16 KiB", "size of test files (1M, 16 KiB, 5 MB, etc)")
 	rootCmd.PersistentFlags().IntVarP(&blockSize, "block", "b", 4096, "block size for io operations in bytes")
@@ -100,8 +98,7 @@ func init() {
 
 // validateParameters checks all command line parameters for validity
 func validateParameters() error {
-	// new iotest.Config struct will be addeed here, but not yet
-	// refactored into mixedrw comand yet
+	//TODO: refactor mixedrw to use this config struct arch
 	config = cfg.NewConfig()
 
 	// validate base file name
@@ -117,8 +114,6 @@ func validateParameters() error {
 		return fmt.Errorf("--size/-s must be a filesize format (4096, 4k, 10M, 5MiB, etc)")
 	}
 	config.FileSize = bytes
-	// spew.Dump(config)
-	// os.Exit(99)
 
 	// validate block size
 	if blockSize <= 0 {
@@ -131,8 +126,6 @@ func validateParameters() error {
 		return fmt.Errorf("test durection must be positive, got %v", testDuration)
 	}
 	config.TestDuration = testDuration
-	// spew.Dump(testDuration)
-	// spew.Dump(config.TestDuration)
 
 	// validate number of parallel jobs
 	if parallelJobs < 1 {
@@ -158,6 +151,10 @@ func validateParameters() error {
 	}
 	config.OutFmt = outFmt
 
+	//TODO: refact these parameters into the config struct to propagate
+	//      down to actual runners.
+	//      will also need to create some logger func/struct to handle
+	//      output independent of the stats/display code
 	if verbose > 0 {
 		// fmt.Println("verbosity level:", verbose)
 	}

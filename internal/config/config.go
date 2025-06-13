@@ -48,11 +48,11 @@ func NewConfig() *Config {
 		ReInit:         false,             // don't reinitialize existing files by default
 		Debug:          0,                 // no debug output by default
 		FileName:       "test",            // default base filename
-		ReadWriteMix:   80,                // default 75% reads, 25% writes
+		ReadWriteMix:   80,                // default 80% reads, 20% writes
 		DirCount:       16,                // default directory count for metadata tests
 		FilesPerBatch:  100,               // default files per batch for metadata tests
 		FilesPerMove:   0,                 // default files per move for metadata tests
-		FsyncCloseFreq: 0,                 // default fsync frequency for metadata tests (10%)
+		FsyncCloseFreq: 0,                 // default fsync frequency for metadata tests
 		MaxReadFiles:   0,                 // default max read files for metadata tests
 	}
 }

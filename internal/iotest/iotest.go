@@ -35,8 +35,6 @@ func (t *IOTest) StartMixedRW() {
 // StartMDSThrash executes the MDS Thrash test
 func (t *IOTest) StartMDSThrash() error {
 
-	// spew.Dump(t.Config)
-
 	// ensure that the test directories exist before proceeding
 	if err := layout.ValidateMDSThrashDirectories(t.Config.TestDir, t.Config.DirCount); err != nil {
 		fmt.Fprintf(os.Stderr, "test directories don't exist, creating them\n")
@@ -65,9 +63,6 @@ func (t *IOTest) StartMDSThrash() error {
 
 	// time.Sleep(t.Config.TestDuration)
 	runners.RunMDSThrash(t.Config, collector)
-	// run test here...
-	// workers would be sending updates to collector
-	// display automatically shows live updates
 
 	// when test completes
 	collector.Stop()
@@ -77,6 +72,8 @@ func (t *IOTest) StartMDSThrash() error {
 	finalStats := collector.GetFinalStats()
 	display.ShowFinalSummary(finalStats)
 
-	// fmt.Println("started mds thrash test...")
+	//TODO: display final stats in requested format
+	//TODO: send stats to some orch method/process for multi host runs
+
 	return nil
 }

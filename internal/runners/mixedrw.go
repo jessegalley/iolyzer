@@ -1,5 +1,6 @@
 // mixedrw.go contains functionality for the `mixedrw` test
-// TODO: worker() code should be made common to all tests
+// TODO: refactor to config struct arch
+// TODO: refactor to be called by iotest
 package runners
 
 import (
